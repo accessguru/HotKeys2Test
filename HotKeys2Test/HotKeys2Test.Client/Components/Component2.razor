@@ -1,0 +1,54 @@
+﻿@using HotKeys2Test.Client.ShortcutKeys
+@using Toolbelt.Blazor.HotKeys2
+@inject ISprbrkHotKeys HotKeys
+@implements IDisposable
+
+<h3>Component 2</h3>
+
+<div>Ctrl+A to Increment</div>
+<div>Ctrl+D to Decrement</div>
+
+<div class="mt-3">Current count: @_value</div>
+<div>HotKeys: @_text</div>
+
+
+@code {
+    private int _value;
+    private string _text;
+    private ISprbrkHotKeysContext _sprbrkHotKeysContext;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+        if (firstRender)
+        {
+            _sprbrkHotKeysContext = HotKeys.CreateContext();
+            CreateHotKeys();
+        }
+    }
+
+    private void CreateHotKeys()
+    {
+        _sprbrkHotKeysContext.Add(ModKeys.Ctrl, Keys.A, Increment, "Ctrl+A pressed", ShortcutKeys.Exclude.None);
+        _sprbrkHotKeysContext.Add(ModKeys.Ctrl, Keys.D, Decrement, "Ctrl+D pressed", ShortcutKeys.Exclude.None);
+    }
+
+    private void Increment(HotKeyEntry arg)
+    {
+        _text = arg.Description!;
+        _value += 1;
+        StateHasChanged();
+    }
+
+    private void Decrement(HotKeyEntry arg)
+    {
+        _text = arg.Description!;
+        _value -= 1;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        _sprbrkHotKeysContext?.Dispose();
+    }
+}
