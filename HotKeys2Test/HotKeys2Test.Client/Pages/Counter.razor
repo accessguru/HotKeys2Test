@@ -3,6 +3,19 @@
 
 <PageTitle>Home</PageTitle>
 
+<h3>Repro Steps</h3>
+<ul>
+    <li>Press F12 to view the development tools</li>
+    <li>Click "Open Modal"</li>
+    <li>Close Modal</li>
+    <li>Click on "Home"</li>
+    <li>Click on Counter</li>
+    <li>Invoke a HotKey (i.e. Ctrl+I)</li>
+    <li>Many "blazor.web.js:1 Uncaught (in promise) Error: System.ArgumentException: There is no tracked object with id ''. 
+        Perhaps the DotNetObjectReference instance was already disposed" exceptions will appear in the console.</li>
+</ul>
+
+
 <Component1/>
 
 <div class="mt-3">
