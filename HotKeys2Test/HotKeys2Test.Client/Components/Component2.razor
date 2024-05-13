@@ -1,7 +1,7 @@
 ﻿@using HotKeys2Test.Client.ShortcutKeys
 @using Toolbelt.Blazor.HotKeys2
 @inject ISprbrkHotKeys HotKeys
-@implements IDisposable
+@implements IAsyncDisposable
 
 <h3>Component 2</h3>
 
@@ -14,23 +14,23 @@
 
 @code {
     private int _value;
-    private string _text;
-    private ISprbrkHotKeysContext _sprbrkHotKeysContext;
+    private string? _text;
+    private ISprbrkHotKeysContext? _sprbrkHotKeysContext;
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        base.OnAfterRender(firstRender);
+        await base.OnAfterRenderAsync(firstRender);
         if (firstRender)
         {
             _sprbrkHotKeysContext = HotKeys.CreateContext();
-            CreateHotKeys();
+            await CreateHotKeys();
         }
     }
 
-    private void CreateHotKeys()
+    private async Task CreateHotKeys()
     {
-        _sprbrkHotKeysContext.Add(ModKeys.Ctrl, Keys.A, Increment, "Ctrl+A pressed", ShortcutKeys.Exclude.None);
-        _sprbrkHotKeysContext.Add(ModKeys.Ctrl, Keys.D, Decrement, "Ctrl+D pressed", ShortcutKeys.Exclude.None);
+        await _sprbrkHotKeysContext!.AddAsync(ModKeys.Ctrl, Keys.A, Increment, "Ctrl+A pressed", ShortcutKeys.Exclude.None);
+        await _sprbrkHotKeysContext.AddAsync(ModKeys.Ctrl, Keys.D, Decrement, "Ctrl+D pressed", ShortcutKeys.Exclude.None);
     }
 
     private void Increment(HotKeyEntry arg)
@@ -46,9 +46,10 @@
         _value -= 1;
         StateHasChanged();
     }
-
-    public void Dispose()
+    
+    public async ValueTask DisposeAsync()
     {
-        _sprbrkHotKeysContext?.Dispose();
+        await _sprbrkHotKeysContext!.DisposeAsync();
     }
+
 }

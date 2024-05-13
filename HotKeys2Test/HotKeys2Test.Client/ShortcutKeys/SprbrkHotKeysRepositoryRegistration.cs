@@ -22,14 +22,14 @@ namespace HotKeys2Test.Client.ShortcutKeys
 
         public override bool Equals(object obj)
         {
-            if (obj is SprbrkHotKeysRepositoryRegistration)
+            if (obj is SprbrkHotKeysRepositoryRegistration registration)
             {
-                return Equals((SprbrkHotKeysRepositoryRegistration)obj);
+                return Equals(registration);
             }
 
-            if (obj is ValueTuple<ModCode, Code>)
+            if (obj is ValueTuple<ModCode, Code> tuple)
             {
-                return Equals((ValueTuple<ModCode, Code>)obj);
+                return Equals(tuple);
             }
 
             return false;

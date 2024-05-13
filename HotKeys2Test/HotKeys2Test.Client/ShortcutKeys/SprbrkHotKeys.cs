@@ -18,9 +18,9 @@ namespace HotKeys2Test.Client.ShortcutKeys
             return new SprbrkHotKeysChildContext(_rootContext);
         }
 
-        public void BeginScope() => _rootContext.BeginScope();
+        public async Task BeginScopeAsync() => await _rootContext.BeginScopeAsync();
 
-        public void EndScope() => _rootContext.EndScope();
+        public async Task EndScopeAsync() => await _rootContext.EndScopeAsync();
 
         public event EventHandler<HotKeyDownEventArgs> KeyDown
         {

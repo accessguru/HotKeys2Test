@@ -6,7 +6,7 @@ namespace HotKeys2Test.Client.ShortcutKeys
     /// <summary>
     /// Holds and manages global set of hotkeys, creates contexts and disposes them properly
     /// </summary>
-    public class SprbrkHotKeysRootContext : IDisposable
+    public class SprbrkHotKeysRootContext : IAsyncDisposable
     {
         /// <summary>
         /// Holds (modkey, key) => hotkey stack.
@@ -26,54 +26,45 @@ namespace HotKeys2Test.Client.ShortcutKeys
 
         public HotKeys HotKeys { get; }
 
-        public IEnumerable<HotKeyEntry> Keys => _currentContext.Keys;
+        public IEnumerable<HotKeyEntry> Keys => _currentContext.HotKeyEntries;
 
         private SprbrkHotKeysRepository CurrentHotkeysRepository =>
-            _hotkeysRepositoryScopes.Any() ? _hotkeysRepositoryScopes.Peek() : _rootSprbrkHotKeysRepository;
+            _hotkeysRepositoryScopes.Count > 0 ? _hotkeysRepositoryScopes.Peek() : _rootSprbrkHotKeysRepository;
 
-        public HotKeyEntryByCode Add(ModKeys modKey, Keys key, Func<Task> action, string description = "", Exclude exclude = Exclude.Default) =>
-            Register(modKey, key, context => context.Add(modKey.ToModCode(), key.ToCode(), action, description, exclude.ToExclude()));
+        public Task<HotKeyEntryByCode> AddAsync(ModKeys modKey, Keys key, Func<Task> action, string description = "", Exclude exclude = Exclude.Default) =>
+            RegisterAsync(modKey, key, context => context.Add(modKey.ToModCode(), key.ToCode(), action, description, exclude.ToExclude()));
 
-        public HotKeyEntryByCode Add(ModKeys modKey, Keys key, Action action, string description = "", Exclude exclude = Exclude.Default) =>
-            Register(modKey, key, context => context.Add(modKey.ToModCode(), key.ToCode(), action, description, exclude.ToExclude()));
+        public Task<HotKeyEntryByCode> AddAsync(ModKeys modKey, Keys key, Action action, string description = "", Exclude exclude = Exclude.Default) =>
+            RegisterAsync(modKey, key, context => context.Add(modKey.ToModCode(), key.ToCode(), action, description, exclude.ToExclude()));
 
-        public HotKeyEntryByCode Add(ModKeys modKey, Keys key, Func<HotKeyEntry, Task> action, string description = "", Exclude exclude = Exclude.Default) =>
-            Register(modKey, key, context => context.Add(modKey.ToModCode(), key.ToCode(), action, description, exclude.ToExclude()));
+        public Task<HotKeyEntryByCode> AddAsync(ModKeys modKey, Keys key, Func<HotKeyEntry, Task> action, string description = "", Exclude exclude = Exclude.Default) =>
+            RegisterAsync(modKey, key, context => context.Add(modKey.ToModCode(), key.ToCode(), action, description, exclude.ToExclude()));
 
-        public HotKeyEntryByCode Add(ModKeys modKey, Keys key, Action<HotKeyEntry> action, string description = "", Exclude exclude = Exclude.Default) =>
-            Register(modKey, key, context => context.Add(modKey.ToModCode(), key.ToCode(), action, description, exclude.ToExclude()));
+        public Task<HotKeyEntryByCode> AddAsync(ModKeys modKey, Keys key, Action<HotKeyEntry> action, string description = "", Exclude exclude = Exclude.Default) =>
+            RegisterAsync(modKey, key, context => context.Add(modKey.ToModCode(), key.ToCode(), action, description, exclude.ToExclude()));
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
+            if (_disposed)
             {
                 return;
             }
 
-            if (disposing)
+            while (_hotkeysRepositoryScopes.Count > 0)
             {
-                while (_hotkeysRepositoryScopes.Any())
-                {
-                    _hotkeysRepositoryScopes.Pop().Clear();
-                }
-
-                _rootSprbrkHotKeysRepository.Clear();
-                _currentContext.Dispose();
+                _hotkeysRepositoryScopes.Pop().Clear();
             }
 
+            _rootSprbrkHotKeysRepository.Clear();
+            await _currentContext.DisposeAsync();
+
             _disposed = true;
+            GC.SuppressFinalize(this);
         }
 
-        [return: MaybeNull]
-        public HotKeyEntry Remove(ModCode modKey, Code key)
+        public async Task<HotKeyEntry>? RemoveAsync(ModCode modKey, Code key)
         {
-            HotKeyEntry removedEntry = CurrentHotkeysRepository.Deregister((modKey, key));
+            HotKeyEntry? removedEntry = CurrentHotkeysRepository.Deregister((modKey, key))!;
 
             if (removedEntry == null)
             {
@@ -81,39 +72,34 @@ namespace HotKeys2Test.Client.ShortcutKeys
             }
 
             //recreates current context with refreshed set of hotkeys
-            RecreateCurrentContext();
+            await RecreateCurrentContextAsync();
 
             return removedEntry;
         }
 
-        internal void BeginScope()
+        internal async Task BeginScopeAsync()
         {
             _hotkeysRepositoryScopes.Push(new SprbrkHotKeysRepository());
-            RecreateCurrentContext();
+            await RecreateCurrentContextAsync();
         }
 
-        internal void EndScope()
+        internal async Task EndScopeAsync()
         {
-            if (_hotkeysRepositoryScopes.Any())
+            if (_hotkeysRepositoryScopes.Count > 0)
             {
                 _hotkeysRepositoryScopes.Pop().Clear();
             }
 
-            RecreateCurrentContext();
+            await RecreateCurrentContextAsync();
         }
 
         /// <summary>
         /// properly disposes HotkeyContext and its values.
         /// Then fills them using hotkey values from the top stack
         /// </summary>
-        private void RecreateCurrentContext()
+        private async Task RecreateCurrentContextAsync()
         {
-            var keyEntriesToDispose = new List<HotKeyEntry>(_currentContext.Keys);
-
-            //_currentContext.Remove(entries => entries);
-            _currentContext.Dispose();
-
-            keyEntriesToDispose.ForEach(k => k.Dispose());
+            await _currentContext.DisposeAsync();
             _currentContext = HotKeys.CreateContext();
 
             //re-register remained hotkeys
@@ -127,18 +113,18 @@ namespace HotKeys2Test.Client.ShortcutKeys
             }
         }
 
-        private HotKeyEntryByCode Register(ModKeys modKeys, Keys keys, Action<HotKeysContext> registerAction)
+        private async Task<HotKeyEntryByCode> RegisterAsync(ModKeys modKeys, Keys keys, Action<HotKeysContext> registerAction)
         {
             var newRegistration = (modKeys.ToModCode(), keys.ToCode());
             registerAction(_currentContext);
 
             //take just created hotkey and store it into stack
-            var newHotKey = (HotKeyEntryByCode)_currentContext.Keys.Last();
+            var newHotKey = (HotKeyEntryByCode)_currentContext.HotKeyEntries.Last();
             CurrentHotkeysRepository.Register(newRegistration, newHotKey);
 
             //need to recreate stack with the top values from
             //hotkey stacks to clean up possible previous hotkey registrations
-            RecreateCurrentContext();
+            await RecreateCurrentContextAsync();
 
             return newHotKey;
         }

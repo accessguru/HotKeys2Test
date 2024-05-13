@@ -19,11 +19,11 @@ namespace HotKeys2Test.Client.ShortcutKeys
             }
         }
 
-        public HotKeyEntry Deregister((ModCode modCode, Code code) key)
+        public HotKeyEntry? Deregister((ModCode modCode, Code code) key)
         {
             var repositoryKey = (SprbrkHotKeysRepositoryRegistration)key;
 
-            if (!_hotkeysRepository.TryGetValue(repositoryKey, out Stack<HotKeyEntry> value) || value.Count == 0)
+            if (!_hotkeysRepository.TryGetValue(repositoryKey, out Stack<HotKeyEntry>? value) || value.Count == 0)
             {
                 return null;
             }
@@ -35,7 +35,7 @@ namespace HotKeys2Test.Client.ShortcutKeys
         {
             var repositoryKey = (SprbrkHotKeysRepositoryRegistration)key;
 
-            if (!_hotkeysRepository.TryGetValue(repositoryKey, out Stack<HotKeyEntry> value))
+            if (!_hotkeysRepository.TryGetValue(repositoryKey, out Stack<HotKeyEntry>? value))
             {
                 value = new Stack<HotKeyEntry>();
                 _hotkeysRepository[repositoryKey] = value;

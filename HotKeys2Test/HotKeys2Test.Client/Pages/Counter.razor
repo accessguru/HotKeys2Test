@@ -22,13 +22,13 @@
     <button @onclick="ShowModal">Open Modal</button>
 </div>
 
-<ModalComponent @ref="modal"/>
+<ModalComponent @ref="_modal"/>
 
 @code {
-    private ModalComponent modal;
+    private ModalComponent _modal = null!;
 
     private void ShowModal()
     {
-        modal.Show();
+        _modal.Show();
     }
 }

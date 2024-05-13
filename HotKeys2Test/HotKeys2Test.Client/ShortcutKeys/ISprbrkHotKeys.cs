@@ -6,9 +6,9 @@ namespace HotKeys2Test.Client.ShortcutKeys
     {
         public ISprbrkHotKeysContext CreateContext();
 
-        void BeginScope();
+        Task BeginScopeAsync();
 
-        void EndScope();
+        Task EndScopeAsync();
 
         event EventHandler<HotKeyDownEventArgs> KeyDown;
     }
